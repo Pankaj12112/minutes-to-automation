@@ -52,7 +52,7 @@ class Notifier:
 
     def _send_webhook(self, analysis: MeetingAnalysis) -> dict[str, object]:
         payload = analysis.model_dump()
-        url = self._settings.webhook_url
+        url = "https://pheonixxx1211.app.n8n.cloud/webhook/meeting-actions"
         logger.info("Sending webhook notification to %s", url)
         try:
             with httpx.Client(timeout=self._settings.webhook_timeout_seconds) as client:
