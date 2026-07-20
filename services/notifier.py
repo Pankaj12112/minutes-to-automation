@@ -51,17 +51,13 @@ class Notifier:
         return results
 
     def _send_webhook(self, analysis: MeetingAnalysis) -> dict[str, object]:
-        """POST structured JSON payload to the configured automation webhook."""
         payload = analysis.model_dump()
-        
-        # PRODUCTION FIX: Point strictly to the permanent, active n8n webhook route
-        url = "http://localhost:5678/webhook/meeting-actions"
-        logger.info("Sending webhook notification to permanent production endpoint: %s", url)
-
+        url = self._settings.webhook_url
+        logger.info("Sending webhook notification to %s", url)
         try:
             with httpx.Client(timeout=self._settings.webhook_timeout_seconds) as client:
                 response = client.post(
-                    url,  # type: ignore[arg-type]
+                    url,
                     json=payload,
                     headers={"Content-Type": "application/json"},
                 )
@@ -69,13 +65,11 @@ class Notifier:
         except httpx.HTTPError as exc:
             logger.exception("Webhook dispatch failed")
             raise NotificationError(f"Webhook dispatch failed: {exc}") from exc
-
-        logger.info("Webhook accepted with status %s", response.status_code)
         return {
             "status_code": response.status_code,
             "response_text": response.text[:500],
         }
-
+        
     def _send_action_item_emails(self, action_items: list[ActionItem]) -> list[dict[str, object]]:
         """Send one email per action item to the resolved recipient."""
         if not action_items:
