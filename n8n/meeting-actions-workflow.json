@@ -1,0 +1,174 @@
+{
+  "name": "Meeting Action Items Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Meeting Action Items Webhook\n\n1. Activate this workflow in n8n\n2. Copy the **Production URL** from the Webhook node\n3. Paste it into your `.env` as `WEBHOOK_URL`\n4. Attach **SMTP** credentials on the Send Email node (Gmail app password works)",
+        "height": 220,
+        "width": 420,
+        "color": 4
+      },
+      "id": "a1b2c3d4-note-0001-4000-8000-000000000001",
+      "name": "Setup Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-120, 80]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "meeting-actions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-webh-0001-4000-8000-000000000002",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [280, 300],
+      "webhookId": "meeting-actions-pipeline"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json.body ?? $input.first().json;\n\nconst meetingSummary = payload.meeting_summary ?? 'No summary provided.';\nconst actionItems = Array.isArray(payload.action_items) ? payload.action_items : [];\n\nif (actionItems.length === 0) {\n  return [\n    {\n      json: {\n        skip_email: true,\n        meeting_summary: meetingSummary,\n        message: 'No action items found in payload.',\n      },\n    },\n  ];\n}\n\nreturn actionItems.map((item) => ({\n  json: {\n    skip_email: false,\n    meeting_summary: meetingSummary,\n    detected_name: item.detected_name ?? 'Unknown',\n    resolved_email: item.resolved_email ?? 'unknown@company.com',\n    task_description: item.task_description ?? 'No task description',\n    priority: item.priority ?? 'Medium',\n    timeline: item.timeline ?? 'Not specified',\n    email_subject: `[Meeting Action][${item.priority ?? 'Medium'}] ${item.task_description ?? 'New task'}`,\n    email_body: `Hello ${item.detected_name ?? 'there'},\\n\\nYou have a new action item from a meeting.\\n\\nTask: ${item.task_description ?? 'N/A'}\\nPriority: ${item.priority ?? 'Medium'}\\nTimeline: ${item.timeline ?? 'Not specified'}\\n\\nMeeting summary:\\n${meetingSummary}\\n\\n---\\nSent automatically by n8n + Meeting Intelligence Pipeline`,\n  },\n}));"
+      },
+      "id": "a1b2c3d4-code-0001-4000-8000-000000000003",
+      "name": "Parse Action Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "skip-email-condition",
+              "leftValue": "={{ $json.skip_email }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-if--0001-4000-8000-000000000004",
+      "name": "Has Action Items?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "work.yashthorat29@gmail.com",
+        "toEmail": "={{ $json.resolved_email }}",
+        "subject": "={{ $json.email_subject }}",
+        "emailFormat": "text",
+        "text": "={{ $json.email_body }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-mail-0001-4000-8000-000000000005",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1020, 220]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"ok\", \"emails_sent\": $items().length, \"message\": \"Action item notifications processed\" } }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-rsp--0001-4000-8000-000000000006",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1280, 220]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"ok\", \"emails_sent\": 0, \"message\": $json.message } }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-rsp--0001-4000-8000-000000000007",
+      "name": "Respond No Items",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1020, 420]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Action Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Action Items": {
+      "main": [
+        [
+          {
+            "node": "Has Action Items?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Action Items?": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond No Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

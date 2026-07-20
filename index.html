@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Intelligence Dashboard</title>
+    <!-- Tailwind CSS for sleek utility styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons for clean UI accents -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased">
+
+    <!-- Navbar -->
+    <nav class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-lg">
+                    <i data-lucide="cpu" class="w-5 h-5 text-white"></i>
+                </div>
+                <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+                    AICTE Pipeline Control
+                </span>
+            </div>
+            <div class="flex items-center gap-2 text-sm text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700/50">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Backend Live (Port 8005)
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Grid Layout -->
+    <main class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left Column: Upload & Control (4 Coils) -->
+        <section class="lg:col-span-5 space-y-6">
+            <div class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 backdrop-blur-sm">
+                <h2 class="text-xl font-semibold mb-2 flex items-center gap-2">
+                    <i data-lucide="audio-lines" class="text-indigo-400 w-5 h-5"></i> Process Meeting
+                </h2>
+                <p class="text-sm text-slate-400 mb-6">Upload your meeting recording (.mp3, .wav, or .mpeg) to trigger the transcription, structured extraction, and n8n automation flow.</p>
+
+                <!-- Dropzone Component -->
+                <div id="dropzone" class="border-2 border-dashed border-slate-700 hover:border-indigo-500/80 bg-slate-950/40 rounded-xl p-8 text-center cursor-pointer transition-all group mb-4">
+                    <input type="file" id="audioFile" accept="audio/*" class="hidden">
+                    <div id="dropzone-prompt" class="space-y-4">
+                        <div class="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                            <i data-lucide="upload-cloud" class="w-6 h-6 text-slate-400 group-hover:text-indigo-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">Click to upload or drag & drop</p>
+                            <p class="text-xs text-slate-500 mt-1">Audio files up to 25MB</p>
+                        </div>
+                    </div>
+                    <div id="file-selected" class="hidden space-y-2">
+                        <i data-lucide="file-audio" class="w-10 h-10 text-emerald-400 mx-auto"></i>
+                        <p id="file-name" class="text-sm font-medium text-slate-200 truncate max-w-xs mx-auto"></p>
+                        <button id="remove-file" class="text-xs text-rose-400 hover:underline">Change file</button>
+                    </div>
+                </div>
+
+                <!-- Submit Action Button -->
+                <button id="processBtn" disabled class="w-full bg-slate-700 text-slate-400 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 cursor-not-allowed">
+                    <i data-lucide="play" class="w-4 h-4"></i> Run Intelligence Pipeline
+                </button>
+            </div>
+
+            <!-- Status Indicator Card -->
+            <div id="statusCard" class="hidden bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6">
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4">Execution Analytics</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-slate-400">Status</span>
+                        <span id="statusText" class="font-medium text-amber-400 flex items-center gap-1.5">
+                            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Processing Audio...
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm border-t border-slate-800 pt-3">
+                        <span class="text-slate-400">Automation Trigger (n8n)</span>
+                        <span id="webhookStatus" class="text-slate-500">—</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Outputs Dashboard (7 Coils) -->
+        <section class="lg:col-span-7 space-y-6">
+            <!-- Empty Placeholder State -->
+            <div id="emptyState" class="bg-slate-800/20 border border-slate-800 border-dashed rounded-2xl p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
+                <div class="w-16 h-16 bg-slate-800/50 text-slate-500 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="terminal" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-base font-medium text-slate-300">Awaiting Pipeline Data</h3>
+                <p class="text-sm text-slate-500 mt-1 max-w-sm">Once you process an audio file, the structured output definitions, extracted insights, and webhook dispatches will display here dynamically.</p>
+            </div>
+
+            <!-- Content Presentation State -->
+            <div id="outputContent" class="hidden space-y-6">
+                <!-- Summary Block -->
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6">
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-indigo-400 mb-3">Executive Summary</h3>
+                    <p id="summaryText" class="text-slate-300 leading-relaxed text-sm bg-slate-950/30 p-4 rounded-xl border border-slate-800"></p>
+                </div>
+
+                <!-- Action Items List Container -->
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6">
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-cyan-400 mb-4">Extracted Action Items</h3>
+                    <div id="actionItemsList" class="space-y-3">
+                        <!-- Instantiated by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Front-end Application Engine Logic -->
+    <script>
+        // Core DOM Selectors
+        const audioFile = document.getElementById('audioFile');
+        const dropzone = document.getElementById('dropzone');
+        const dropzonePrompt = document.getElementById('dropzone-prompt');
+        const fileSelected = document.getElementById('file-selected');
+        const fileName = document.getElementById('file-name');
+        const removeFile = document.getElementById('remove-file');
+        const processBtn = document.getElementById('processBtn');
+        const statusCard = document.getElementById('statusCard');
+        const statusText = document.getElementById('statusText');
+        const webhookStatus = document.getElementById('webhookStatus');
+        const emptyState = document.getElementById('emptyState');
+        const outputContent = document.getElementById('outputContent');
+        const summaryText = document.getElementById('summaryText');
+        const actionItemsList = document.getElementById('actionItemsList');
+
+        const BACKEND_URL = 'http://127.0.0.1:8005/process-meeting';
+
+        // Initialize Icons
+        lucide.createIcons();
+
+        // Dropzone Interaction Events
+        dropzone.addEventListener('click', () => audioFile.click());
+        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('border-indigo-500', 'bg-slate-900/40'); });
+        dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('border-indigo-500', 'bg-slate-900/40'); });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-indigo-500', 'bg-slate-900/40');
+            if (e.dataTransfer.files.length) handleFileSelection(e.dataTransfer.files[0]);
+        });
+
+        audioFile.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFileSelection(e.target.files[0]);
+        });
+
+        removeFile.addEventListener('click', (e) => {
+            e.stopPropagation();
+            audioFile.value = '';
+            fileSelected.classList.add('hidden');
+            dropzonePrompt.classList.remove('hidden');
+            processBtn.disabled = true;
+            processBtn.className = "w-full bg-slate-700 text-slate-400 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 cursor-not-allowed";
+        });
+
+        function handleFileSelection(file) {
+            fileName.textContent = file.name;
+            dropzonePrompt.classList.add('hidden');
+            fileSelected.classList.remove('hidden');
+            
+            // Activate Process Button
+            processBtn.disabled = false;
+            processBtn.className = "w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-medium shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]";
+        }
+
+        // Network Pipeline Dispatch Processing Execution
+        processBtn.addEventListener('click', async () => {
+            const file = audioFile.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('audio', file);
+
+            // Configure Active Loader Framework UI
+            statusCard.classList.remove('hidden');
+            statusText.className = "font-medium text-amber-400 flex items-center gap-1.5";
+            statusText.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Extracting Insights...`;
+            webhookStatus.innerHTML = `<span class="text-slate-400">Waiting for payload processing...</span>`;
+            lucide.createIcons();
+
+            processBtn.disabled = true;
+            processBtn.className = "w-full bg-slate-800 text-slate-600 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 cursor-not-allowed";
+
+            try {
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error(`Server returned status code ${response.status}`);
+
+                const data = await response.json();
+                renderPipelineOutput(data);
+
+            } catch (error) {
+                console.error(error);
+                statusText.className = "font-medium text-rose-400 flex items-center gap-1.5";
+                statusText.innerHTML = `<i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> Processing Failed`;
+                webhookStatus.innerHTML = `<span class="text-rose-400 font-medium">Pipeline Error Connection</span>`;
+                lucide.createIcons();
+            }
+        });
+
+        // Dynamic Component Data Render Engine
+        
+        // Dynamic Component Data Render Engine
+        function renderPipelineOutput(data) {
+            // Update Metric Status Indicators
+            statusText.className = "font-medium text-emerald-400 flex items-center gap-1.5";
+            statusText.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i> 200 Pipeline Process Complete`;
+
+            if (data.notifications && data.notifications.webhook) {
+                webhookStatus.innerHTML = `<span class="text-emerald-400 font-semibold">Success (200 OK)</span>`;
+            } else {
+                webhookStatus.innerHTML = `<span class="text-amber-400 font-medium">Delivered to Local Instance Router</span>`;
+            }
+
+            // FIXED: Extract parameters safely from the nested data.analysis wrapper object
+            const analysisData = data.analysis || {};
+            summaryText.textContent = analysisData.summary || "No clear executive content outline provided by core pipeline engine.";
+
+            // Reset and Build Action Card Modules
+            actionItemsList.innerHTML = '';
+            const actions = analysisData.action_items || [];
+
+            if (actions.length === 0) {
+                actionItemsList.innerHTML = `
+                    <div class="text-sm text-slate-500 text-center py-4 italic">
+                        No clear assignable action items detected inside the session structure.
+                    </div>
+                `;
+            } else {
+                actions.forEach(item => {
+                    // Map priorities to color palettes
+                    const prioColors = {
+                        'High': 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+                        'Medium': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                        'Low': 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+                    };
+                    const colorClass = prioColors[item.priority] || 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-950/40 border border-slate-800 rounded-xl p-4 space-y-3 hover:border-slate-700/60 transition-colors";
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between gap-4">
+                            <p class="text-sm font-medium text-slate-200">${item.task_description}</p>
+                            <span class="text-xs px-2.5 py-0.5 rounded-full font-medium border ${colorClass}">
+                                ${item.priority}
+                            </span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs text-slate-400 border-t border-slate-900 pt-2.5">
+                            <div class="flex items-center gap-1">
+                                <i data-lucide="user" class="w-3.5 h-3.5 text-indigo-400"></i>
+                                <span class="text-slate-300 font-medium">${item.detected_name}</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <i data-lucide="mail" class="w-3.5 h-3.5 text-slate-500"></i>
+                                <span class="text-slate-500 truncate max-w-[180px]">${item.resolved_email}</span>
+                            </div>
+                            <div class="flex items-center gap-1 ml-auto">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-500"></i>
+                                <span>Due: <span class="text-slate-300 font-medium">${item.timeline}</span></span>
+                            </div>
+                        </div>
+                    `;
+                    actionItemsList.appendChild(card);
+                });
+            }
+
+            // Flip layout presentation cards view state
+            emptyState.classList.add('hidden');
+            outputContent.classList.remove('hidden');
+            lucide.createIcons();
+        }
+                   
+             
+    </script>
+</body>
+</html>
