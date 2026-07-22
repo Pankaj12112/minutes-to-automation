@@ -9,6 +9,8 @@ import uuid
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -174,7 +176,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
 
 app = create_app()
-
+@app.get("/")
+async def home():
+    return FileResponse("index.html")
 
 if __name__ == "__main__":
     import uvicorn
