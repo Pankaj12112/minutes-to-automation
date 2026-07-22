@@ -223,7 +223,7 @@
 
             // FIXED: Extract parameters safely from the nested data.analysis wrapper object
             const analysisData = data.analysis || {};
-            summaryText.textContent = analysisData.summary || "No clear executive content outline provided by core pipeline engine.";
+            summaryText.textContent = analysisData.meeting_summary || "No meeting summary available.";
 
             // Reset and Build Action Card Modules
             actionItemsList.innerHTML = '';
